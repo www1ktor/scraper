@@ -2,7 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
-base_url = "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/wielkopolskie/poznan/poznan/poznan?limit=36&ownerTypeSingleSelect=ALL&priceMax=355553&by=DEFAULT&direction=DESC"
+OTODOM_PL = "https://www.otodom.pl/"
+base_url = OTODOM_PL + "pl/wyniki/sprzedaz/mieszkanie/wielkopolskie/poznan/poznan/poznan?limit=36&ownerTypeSingleSelect=ALL&priceMax=355553&by=DEFAULT&direction=DESC"
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/119.0 Safari/537.36'
@@ -40,36 +41,65 @@ results = []
 
 for page in range(1, n_pages + 1):
     print(page)
+    
     response = requests.get(base_url + f"&page={str(page)}", headers=headers)
     soup = BeautifulSoup(response.content, 'lxml')
 
-    offers = soup.select('.e1wc8ahl1.css-1xi9t0b.e12fn6ie0')
+    for offer in soup.find_all(attrs={'data-cy':'listing-item'}):
+        #print(offer)
+        rooms = offer.find(attrs={'data-sentry-component':'RoomsDefinition'})
+        floor = offer.find(attrs={'data-sentry-component':'FloorsDefinition'})
+        title = offer.find(attrs={'data-cy' : 'listing-item-title'})
+        localisation = offer.find(attrs={'data-sentry-component':'Address'})
 
-    for offer in offers:
-        title = offer.select_one('.css-16vl3c1.e17g0c820').get_text(strip=True)
-        localisation = offer.select_one('.css-42r2ms.eejmx80').get_text(strip=True)
+        for dt in offer.find_all("dt"):
+            if "Powierzchnia" in dt.get_text(strip=True):
+                dd = dt.find_next_sibling("dd")
+                if dd:
+                    area = dd
 
-        dl_tags = offer.find_all("dl")
+        link = OTODOM_PL[:-1] + soup.find(attrs={'data-cy' : 'listing-item-link'}).get("href")
+        
 
-        for dl in dl_tags:
-            dt_tags = dl.find_all("dt")
 
-            rooms = None
-            footage = None
-            price_per_meter = None
-            floor = None
+        listing = requests.get(link, headers=headers)
+        data = BeautifulSoup(listing.content, 'lxml')
 
-            for dt in dt_tags:
-                label = dt.get_text(strip=True) 
-                
-                     
+        id = data.find(attrs={'data-sentry-element':'DetailsContainer'})
+        price = data.find(attrs={'data-sentry-element':'Price'})
+        #area = data.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
+        price_per_meter = data.find(attrs={'aria-label':'Cena za metr kwadratowy'})
+        
+        #rent = data.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
+        #description = data.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
 
-        print([title, localisation])
-        time.sleep(1)
-    #print(offers)
-#for result in results:
-    #print(result)   
-#print(len(results), len(set(results)))
+        details = {
+            'ID: ' : str(id.get_text(strip=True))[3:].lstrip(' '),
+            'Cena: ' : price, 
+            'Powierzchnia: ' : area,
+            'Cena za metr: ' : price_per_meter, 
+            'Pokoje: ' : rooms,
+            'Lokalizacja: ' : localisation,
+            'Piętro: ' : floor,
+            
+            'Tytuł: ' : title, 
+            
+            'Link: ': link
+        }
+        #print(id, price, area, price_per_meter, rooms, localisation, floor, rent, title, description, link)
+
+        for k, v in zip(details.keys(), details.values()):
+            if v and k != 'Link: ' and k != 'ID: ':
+                print(k, v.get_text(strip=True))
+            else:
+                print(k, v)
+
+        #soup.find_all()
+
+
+    time.sleep(1)
+
+ 
 
 
 
