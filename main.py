@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 OTODOM_PL = "https://www.otodom.pl/"
 base_url = OTODOM_PL + "pl/wyniki/sprzedaz/mieszkanie/wielkopolskie/poznan/poznan/poznan?limit=36&ownerTypeSingleSelect=ALL&priceMax=355553&by=DEFAULT&direction=DESC"
@@ -45,33 +47,45 @@ for page in range(1, n_pages + 1):
     response = requests.get(base_url + f"&page={str(page)}", headers=headers)
     soup = BeautifulSoup(response.content, 'lxml')
 
-    for offer in soup.find_all(attrs={'data-cy':'listing-item'}):
-        #print(offer)
-        rooms = offer.find(attrs={'data-sentry-component':'RoomsDefinition'})
-        floor = offer.find(attrs={'data-sentry-component':'FloorsDefinition'})
-        title = offer.find(attrs={'data-cy' : 'listing-item-title'})
-        localisation = offer.find(attrs={'data-sentry-component':'Address'})
+    for thumbnail in soup.find_all(attrs={'data-cy':'listing-item'}):
+        rooms = thumbnail.find(attrs={'data-sentry-component':'RoomsDefinition'})
+        floor = thumbnail.find(attrs={'data-sentry-component':'FloorsDefinition'})
+        title = thumbnail.find(attrs={'data-cy' : 'listing-item-title'})
+        localisation = thumbnail.find(attrs={'data-sentry-component':'Address'})
 
-        for dt in offer.find_all("dt"):
+        for dt in thumbnail.find_all("dt"):
             if "Powierzchnia" in dt.get_text(strip=True):
                 dd = dt.find_next_sibling("dd")
                 if dd:
                     area = dd
 
-        link = OTODOM_PL[:-1] + soup.find(attrs={'data-cy' : 'listing-item-link'}).get("href")
+        link = OTODOM_PL[:-1] + thumbnail.find(attrs={'data-cy' : 'listing-item-link'}).get("href")
         
-
-
         listing = requests.get(link, headers=headers)
-        data = BeautifulSoup(listing.content, 'lxml')
+        offer = BeautifulSoup(listing.content, 'lxml')
 
-        id = data.find(attrs={'data-sentry-element':'DetailsContainer'})
-        price = data.find(attrs={'data-sentry-element':'Price'})
-        #area = data.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
-        price_per_meter = data.find(attrs={'aria-label':'Cena za metr kwadratowy'})
+        id = offer.find(attrs={'data-sentry-element':'DetailsContainer'})
+        price = offer.find(attrs={'data-sentry-element':'Price'})
+        price_per_meter = offer.find(attrs={'aria-label':'Cena za metr kwadratowy'})
         
-        #rent = data.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
-        #description = data.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
+        items = offer.find_all(attrs={'data-sentry-element':"Item"})
+
+        for p in items:
+            label = p.get_text(strip=True).replace(":", "")
+            sibling = p.find_next_sibling()
+            value = sibling.get_text(strip=True) if sibling else None
+
+            if label == 'Czynsz':
+                rent = value
+            elif label == 'Winda':
+                elevator = value
+
+        driver = webdriver.Chrome()
+        driver.get(link)
+        description = str(driver.find_element(By.CSS_SELECTOR, '[data-sentry-element="DescriptionWrapper"]').text)
+        driver.quit()
+
+
 
         details = {
             'ID: ' : str(id.get_text(strip=True))[3:].lstrip(' '),
@@ -81,15 +95,15 @@ for page in range(1, n_pages + 1):
             'Pokoje: ' : rooms,
             'Lokalizacja: ' : localisation,
             'Piętro: ' : floor,
-            
+            'Winda: ' : elevator,
+            'Czynsz: ' : rent,
             'Tytuł: ' : title, 
-            
+            'Opis: ' : description,
             'Link: ': link
         }
-        #print(id, price, area, price_per_meter, rooms, localisation, floor, rent, title, description, link)
 
         for k, v in zip(details.keys(), details.values()):
-            if v and k != 'Link: ' and k != 'ID: ':
+            if v and type(v) != str:
                 print(k, v.get_text(strip=True))
             else:
                 print(k, v)
