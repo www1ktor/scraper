@@ -98,6 +98,7 @@ for page in range(1, n_pages + 1):
             'Winda: ' : elevator,
             'Czynsz: ' : rent,
             'Tytuł: ' : title, 
+            'Opis.strip(): ' : description.strip(),
             'Opis: ' : description,
             'Link: ': link
         }
