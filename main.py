@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+import csv
+
+listings = []
 
 OTODOM_PL = "https://www.otodom.pl/"
 base_url = OTODOM_PL + "pl/wyniki/sprzedaz/mieszkanie/wielkopolskie/poznan/poznan/poznan?limit=36&ownerTypeSingleSelect=ALL&priceMax=355553&by=DEFAULT&direction=DESC"
@@ -14,7 +17,8 @@ headers = {
 response = requests.get(base_url + '1', headers=headers)
 soup = BeautifulSoup(response.content, 'lxml')
 
-pages = soup.select_one(".css-15svspy.eawphu90").get_text(strip=True)[2:]
+pages = soup.find(attrs={'data-sentry-component':'ItemsCounter'}).get_text(strip=True)[2:]
+ 
 
 pages_start = ''
 pages_stop = ''
@@ -84,9 +88,7 @@ for page in range(1, n_pages + 1):
         driver.get(link)
         description = str(driver.find_element(By.CSS_SELECTOR, '[data-sentry-element="DescriptionWrapper"]').text)
         driver.quit()
-
-
-
+        
         details = {
             'ID: ' : str(id.get_text(strip=True))[3:].lstrip(' '),
             'Cena: ' : price, 
@@ -98,21 +100,25 @@ for page in range(1, n_pages + 1):
             'Winda: ' : elevator,
             'Czynsz: ' : rent,
             'Tytuł: ' : title, 
-            'Opis.strip(): ' : description.strip(),
             'Opis: ' : description,
             'Link: ': link
         }
 
         for k, v in zip(details.keys(), details.values()):
-            if v and type(v) != str:
-                print(k, v.get_text(strip=True))
-            else:
-                print(k, v)
-
-        #soup.find_all()
+            if v and type(v) is not str:
+                v = v.get_text(strip=True)
+            
+            print(k, v)
 
 
-    time.sleep(1)
+        listings.append(details)
+
+        time.sleep(5)
+
+with open('data.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=details.keys())
+    writer.writeheader()
+    writer.writerows(listings)
 
  
 
