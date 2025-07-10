@@ -16,6 +16,9 @@ options.add_argument('--disable-gpu')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--window-size=1920,1080')
+options.add_argument("--disable-blink-features=AutomationControlled")
+options.add_experimental_option("excludeSwitches", ["enable-automation"])
+options.add_experimental_option("useAutomationExtension", False)
 
 service = Service()
 driver = webdriver.Chrome(options=options)
@@ -33,7 +36,6 @@ response = requests.get(base_url + '1', headers=headers)
 soup = BeautifulSoup(response.content, 'lxml')
 
 pages = soup.find(attrs={'data-sentry-component':'ItemsCounter'}).get_text(strip=True)[2:]
- 
 
 pages_start = ''
 pages_stop = ''
@@ -63,23 +65,34 @@ err = []
 
 for page in range(1, n_pages + 1):
     #print(page)
-    
     response = requests.get(base_url + f"&page={str(page)}", headers=headers)
     soup = BeautifulSoup(response.content, 'lxml')
-
-    for thumbnail in soup.find_all(attrs={'data-cy':'listing-item'}):
+    
+    for thumbnail in soup.find_all(attrs={'data-sentry-element':'Container'}):
+        id, price, area, price_per_meter, rooms, address, district, administrative_area, city, voivodeship, floor, elevator, rent, title, link = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+        
+        
         try:
-            rooms = thumbnail.find(attrs={'data-sentry-component':'RoomsDefinition'})
-            floor = thumbnail.find(attrs={'data-sentry-component':'FloorsDefinition'})
             title = thumbnail.find(attrs={'data-cy' : 'listing-item-title'})
-            localisation = thumbnail.find(attrs={'data-sentry-component':'Address'})
+            localisation = thumbnail.find(attrs={'data-sentry-component':'Address'}).get_text(strip=True)
+            
+            localisation = localisation.split(',')
+            
+            voivodeship = localisation[-1]
+            city = localisation[-2]
+            administrative_area = localisation[-3]
+            district = localisation[-4]
+            address = localisation[-5]
+                
+            
+            print(localisation)
 
             for dt in thumbnail.find_all("dt"):
-                if "Powierzchnia" in dt.get_text(strip=True):
+                if "Piętro" in dt.get_text(strip=True):
                     dd = dt.find_next_sibling("dd")
                     if dd:
-                        area = dd
-
+                        floor = dd
+                        
             link = OTODOM_PL[:-1] + thumbnail.find(attrs={'data-cy' : 'listing-item-link'}).get("href")
             
             listing = requests.get(link, headers=headers)
@@ -101,11 +114,17 @@ for page in range(1, n_pages + 1):
 
                     if rent.startswith('.css'):
                         rent = "brak informacji"
+                    elif rent.endswith('zł'):
+                        rent = rent.strip()
 
                 elif label == 'Winda':
                     elevator = value
-
-
+                    
+                elif label == "Powierzchnia":
+                    area = value
+                    
+                elif label == "Liczba pokoi":
+                    rooms = value
 
             driver.get(link)
             html = driver.page_source
@@ -117,12 +136,15 @@ for page in range(1, n_pages + 1):
                 'Powierzchnia: ' : area,
                 'Cena za metr: ' : price_per_meter, 
                 'Pokoje: ' : rooms,
-                'Lokalizacja: ' : localisation,
+                'Ulica: ' : address,
+                'Dzielnica: ' : district,
+                'Obszar administracyjny' : administrative_area,
+                'Miasto' : city,
+                'Województwo' : voivodeship,  
                 'Piętro: ' : floor,
                 'Winda: ' : elevator,
                 'Czynsz: ' : rent,
                 'Tytuł: ' : title, 
-                #'Opis: ' : description,
                 'Link: ': link
             }
 
@@ -133,17 +155,18 @@ for page in range(1, n_pages + 1):
                     v = v.get_text(strip=True)
                 
                 listing[k] = v
+                print(k, v)
 
             listings.append(listing)
-            print(listing)
         
         except:
             if link:
                 print("error")
                 err.append(link)
         
-
         time.sleep(1)
+
+        
 
 with open('data.csv', 'w', newline='', encoding='utf-8') as csvfile:
     writer = csv.DictWriter(csvfile, fieldnames=details.keys())
@@ -152,7 +175,3 @@ with open('data.csv', 'w', newline='', encoding='utf-8') as csvfile:
 
 print("err's", len(err), err)
  
-
-
-
-
