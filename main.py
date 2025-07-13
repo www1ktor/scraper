@@ -68,24 +68,18 @@ for page in range(1, n_pages + 1):
     response = requests.get(base_url + f"&page={str(page)}", headers=headers)
     soup = BeautifulSoup(response.content, 'lxml')
     
-    for thumbnail in soup.find_all(attrs={'data-sentry-element':'Container'}):
+    for thumbnail in soup.find_all(attrs={'data-sentry-component':'AdvertCard'}):
         id, price, area, price_per_meter, rooms, address, district, administrative_area, city, voivodeship, floor, elevator, rent, title, link = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
         
-        
+        #data-sentry-component CombinedInvestmentCard
         try:
             title = thumbnail.find(attrs={'data-cy' : 'listing-item-title'})
             localisation = thumbnail.find(attrs={'data-sentry-component':'Address'}).get_text(strip=True)
             
-            localisation = localisation.split(',')
-            
-            voivodeship = localisation[-1]
-            city = localisation[-2]
-            administrative_area = localisation[-3]
-            district = localisation[-4]
-            address = localisation[-5]
-                
-            
-            print(localisation)
+            keys = ['Ulica', 'Dzielnica', 'Obszar administracyjny', 'Miasto', 'Województwo'][::-1]
+            localisation = localisation.split(',')[::-1]
+
+            address = { key: val for key, val in zip(keys, localisation) }    
 
             for dt in thumbnail.find_all("dt"):
                 if "Piętro" in dt.get_text(strip=True):
@@ -131,21 +125,21 @@ for page in range(1, n_pages + 1):
             #description = str(driver.find_element(By.CSS_SELECTOR, '[data-sentry-element="DescriptionWrapper"]').text)
         
             details = {
-                'ID: ' : str(id.get_text(strip=True))[3:].lstrip(' '),
-                'Cena: ' : price, 
-                'Powierzchnia: ' : area,
-                'Cena za metr: ' : price_per_meter, 
-                'Pokoje: ' : rooms,
-                'Ulica: ' : address,
-                'Dzielnica: ' : district,
-                'Obszar administracyjny' : administrative_area,
-                'Miasto' : city,
-                'Województwo' : voivodeship,  
-                'Piętro: ' : floor,
-                'Winda: ' : elevator,
-                'Czynsz: ' : rent,
-                'Tytuł: ' : title, 
-                'Link: ': link
+                'ID' : str(id.get_text(strip=True))[3:].lstrip(' '),
+                'Cena' : price, 
+                'Powierzchnia' : area,
+                'Cena za metr' : price_per_meter, 
+                'Pokoje' : rooms,
+                'Ulica' : address.get('Ulica', ''),
+                'Dzielnica' : address.get('Dzielnica', ''),
+                'Obszar administracyjny' : address.get('Obszar administracyjny', ''), 
+                'Miasto' : address.get('Miasto', ''),
+                'Województwo' : address.get('Województwo', ''),
+                'Piętro' : floor,
+                'Winda' : elevator,
+                'Czynsz' : rent,
+                'Tytuł' : title, 
+                'Link': link
             }
 
             listing = {}
@@ -168,7 +162,7 @@ for page in range(1, n_pages + 1):
 
         
 
-with open('data.csv', 'w', newline='', encoding='utf-8') as csvfile:
+with open('data2.csv', 'w', newline='', encoding='utf-8') as csvfile:
     writer = csv.DictWriter(csvfile, fieldnames=details.keys())
     writer.writeheader()
     writer.writerows(listings)
