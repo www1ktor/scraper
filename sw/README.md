@@ -1,1 +1,3 @@
-to jest scraper do otodom
+to będzie scraper do otodom. 
+
+

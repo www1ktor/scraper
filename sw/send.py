@@ -5,7 +5,7 @@ from email.message import EmailMessage
 with open('table.html', encoding='utf-8') as fp:
     body = fp.read()
 
-with open('sentgrid.txt', encoding='utf-8') as pswd:
+with open('keys/sentgrid.txt', encoding='utf-8') as pswd:
     passwd = str(pswd.read())
     
 msg = EmailMessage()
