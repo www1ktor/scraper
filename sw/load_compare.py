@@ -50,7 +50,7 @@ html_body = f"""
 </html>
 """
 
-with open("table.html", "a") as f:
+with open("table.html", "w") as f:
   f.write(html_body)
   
 diff = diff.to_csv('changes.csv', index=False)
