@@ -66,7 +66,6 @@ err = []
 multiadvert_links = []
 
 for page in range(1, n_pages + 1):
-    #print(page)
     response = requests.get(base_url + f"/&page={str(page)}", headers=headers)
     soup = BeautifulSoup(response.content, 'lxml')
     
@@ -177,7 +176,7 @@ for page in range(1, n_pages + 1):
         time.sleep(1)
         
 for link in set(multiadvert_links):
-    #print(f"/{link + PRICE_FILTER}")
+
     ma_response = requests.get(link + PRICE_FILTER, headers=headers)
     ma_soup = BeautifulSoup(ma_response.content, 'lxml')    
     print(link)
@@ -265,7 +264,7 @@ for link in set(multiadvert_links):
                 listing[k] = v
                 print(k, v)
 
-#with open('data2.csv', 'w', newline='', encoding='utf-8') as csvfile:
+#with open('data.csv', 'w', newline='', encoding='utf-8') as csvfile:
     #writer = csv.DictWriter(csvfile, fieldnames=details.keys())
     #writer.writeheader()
     #writer.writerows(listings)
