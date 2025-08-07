@@ -173,23 +173,47 @@ for page in range(1, n_pages + 1):
             pass
         
         time.sleep(1)
-        
-'''for link in set(multiadvert_links):
-    print(link)
-    response = requests.get(link, headers=headers)
-    soup = BeautifulSoup(response.content, 'lxml')
+   
+links = [] 
+print(multiadvert_links)    
+for link in set(multiadvert_links):
+    driver = webdriver.Chrome(options=options)
+    driver.get(link)
     
-    for thumbnail in soup.find_all(attrs={'data-sentry-component':'UnitCard'}):
-        #print(thumbnail)
-        a = thumbnail.find(attrs={'data-sentry-element':'StyledAnchor'})
-        print(a)
-        
-        time.sleep(1)'''
+    time.sleep(3)  
 
-with open('data.csv', 'w', newline='', encoding='utf-8') as csvfile:
-    writer = csv.DictWriter(csvfile, fieldnames=details.keys())
-    writer.writeheader()
-    writer.writerows(listings)
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'lxml')
+    flag = False
 
+
+    while True:
+        for h in soup.find_all(attrs={'data-sentry-element':'StyledAnchor'}):
+            links.append(h.get("href"))
+        try:
+            next_btn = driver.find_element(By.XPATH, '//li[@aria-label="Go to next Page"]')
+            disabled = next_btn.get_attribute("aria-disabled")
+
+            if disabled == 'true': break
+            
+            driver.execute_script("arguments[0].click();", next_btn)
+            time.sleep(3)  
+            html = driver.page_source
+            soup = BeautifulSoup(html, 'lxml')
+        except:
+            flag = True
+            
+        if flag is True:
+            break
+
+    #driver.quit()
+
+    print(len(links), len(set(links)))
+
+    #with open('data.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        #writer = csv.DictWriter(csvfile, fieldnames=details.keys())
+        #writer.writeheader()
+        #writer.writerows(listings)'''
+print(len(listings))
 print("err's", len(err), err)
  
