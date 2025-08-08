@@ -63,9 +63,12 @@ for adv_link in links:
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
     
+    id = soup.find(attrs={'data-sentry-element':'DetailsProperty'})
+    price = soup.find(attrs={'aria-label':'Cena'}).get_text(strip=True)
     
+    print(id, price)
     
-    details = {
+    '''details = {
         'ID' : str(id.get_text(strip=True))[3:].lstrip(' '),
         'Cena' : price, 
         'Powierzchnia' : area,
@@ -81,4 +84,4 @@ for adv_link in links:
         'Czynsz' : rent,
         'Tytuł' : title, 
         'Link': link
-    }
+    }'''
