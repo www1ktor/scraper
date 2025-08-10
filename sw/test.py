@@ -18,8 +18,8 @@ options.add_argument("--disable-blink-features=AutomationControlled")
 options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
 
 driver = webdriver.Chrome(options=options)
-
-url = ['https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/os-lotnictwa-polskiego-12-ID4u9wv', 'https://www.otodom.pl/pl/oferta/osiedle-naturama-ii-ID4uard', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/osiedle-naturama-ii-ID4uard']
+url = ['https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M']
+#url = ['https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/os-lotnictwa-polskiego-12-ID4u9wv', 'https://www.otodom.pl/pl/oferta/osiedle-naturama-ii-ID4uard', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/osiedle-naturama-ii-ID4uard']
 url = list(set(url))
 links = []
 
@@ -57,31 +57,56 @@ for link in url:
     print(link, len(links), len(set(links)))
 
 for adv_link in links:
+    time.sleep(1)
     id, price, area, price_per_meter, rooms, address, district, administrative_area, city, voivodeship, floor, elevator, rent, title, link = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
     #print(OTODOM_PL + adv_link)
     driver.get(OTODOM_PL + adv_link)
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
     
-    id = soup.find(attrs={'data-sentry-element':'DetailsProperty'})
+    id = soup.find(attrs={'data-sentry-element':'DetailsProperty'}).get_text(strip=True)
     price = soup.find(attrs={'aria-label':'Cena'}).get_text(strip=True)
+    price_per_meter = soup.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
     
-    print(id, price)
+    for item in soup.find_all(attrs={"data-sentry-element": "Item"}):
+        label = item.get_text(strip=True).lower()
+        value_tag = item.find_next_sibling("p")
+        
+        if "powierzchnia" in label: area = value_tag.get_text(strip=True)
+        elif "liczba pokoi" in label: rooms = value_tag.get_text(strip=True)
+        elif "czynsz" in label:
+            rent = value_tag.get_text(strip=True)
+
+            if rent.startswith('.css'): rent = "brak informacji"
+            elif rent.endswith('zł'): rent = rent.strip()
+
+        elif "winda" in label: elevator = value_tag.get_text(strip=True)
+        elif "piętro" in label: floor = value_tag.get_text(strip=True).split('/')[0]    
+    
+    localisation = soup.find(attrs={'data-sentry-component':'MapLink'}).get_text(strip=True)
+    keys = ['Ulica', 'Dzielnica', 'Obszar administracyjny', 'Miasto', 'Województwo'][::-1]
+    localisation = localisation.split(',')[::-1]
+
+    address = { key: val for key, val in zip(keys, localisation) }      
+    
+    title = soup.find(attrs={'data-cy':'adPageAdTitle'}).get_text(strip=True)
+    
+    print(rent, elevator, floor, )
     
     '''details = {
-        'ID' : str(id.get_text(strip=True))[3:].lstrip(' '),
-        'Cena' : price, 
-        'Powierzchnia' : area,
-        'Cena za metr' : price_per_meter, 
-        'Pokoje' : rooms,
-        'Ulica' : address.get('Ulica', ''),
-        'Dzielnica' : address.get('Dzielnica', ''),
-        'Obszar administracyjny' : address.get('Obszar administracyjny', ''), 
-        'Miasto' : address.get('Miasto', ''),
-        'Województwo' : address.get('Województwo', ''),
+        #'ID' : str(id.get_text(strip=True))[3:].lstrip(' '),
+        #'Cena' : price, 
+        #'Powierzchnia' : area,
+        #'Cena za metr' : price_per_meter, 
+        #'Pokoje' : rooms,
+        #'Ulica' : address.get('Ulica', ''),
+        #'Dzielnica' : address.get('Dzielnica', ''),
+        #'Obszar administracyjny' : address.get('Obszar administracyjny', ''), 
+        #'Miasto' : address.get('Miasto', ''),
+        #'Województwo' : address.get('Województwo', ''),
         'Piętro' : floor,
         'Winda' : elevator,
         'Czynsz' : rent,
-        'Tytuł' : title, 
-        'Link': link
+        #'Tytuł' : title, 
+        #'Link': OTODOM_PL + adv_link
     }'''
