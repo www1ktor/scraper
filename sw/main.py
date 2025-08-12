@@ -156,6 +156,7 @@ for page in range(1, n_pages + 1):
                 print(k, v)
 
             listings.append(listing)
+            print(listings)
         
         except:
             if link:
