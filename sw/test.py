@@ -16,13 +16,14 @@ OTODOM_PL = "https://www.otodom.pl"
 base_url = OTODOM_PL + "/pl/wyniki/sprzedaz/mieszkanie/wielkopolskie/poznan/poznan/poznan?limit=36&ownerTypeSingleSelect=ALL&priceMax=355553&by=DEFAULT&direction=DESC"
 PRICE_FILTER = "?priceMax=355553"
 
-multiadvert_links = ['https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 
-                     'https://www.otodom.pl/pl/oferta/os-lotnictwa-polskiego-12-ID4u9wv', 
-                     'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 
-                     'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 
-                     'https://www.otodom.pl/pl/oferta/osiedle-naturama-ii-ID4uard']
+#multiadvert_links = ['https://www.otodom.pl/pl/oferta/rezydencja-san-petrus-ID4wZGn', 'https://www.otodom.pl/pl/oferta/os-lotnictwa-polskiego-12-ID4u9wv', 'https://www.otodom.pl/pl/oferta/naramowicka-172-ID4wW7M', 'https://www.otodom.pl/pl/oferta/nadolnik-compact-apartments-ID45iR1', 'https://www.otodom.pl/pl/oferta/osiedle-naturama-ii-ID4uard']
+multiadvert_links = []
 
-
+def read_multiadvert_links():
+    with open('links.txt') as links:
+        for link in links.readlines():
+            multiadvert_links.append(link[:-1])
+            
 def multi():
     print(multiadvert_links)
     service, driver, soup = None, None, None
@@ -153,7 +154,8 @@ def multi():
                 err.append("ERROR")
 
     #listings = list(set(listings))
-    
+
+read_multiadvert_links()    
 multi()
 keys = ['ID', 'Cena', 'Powierzchnia', 'Cena za metr', 'Pokoje', 'Ulica', 'Dzielnica', 'Obszar administracyjny',  'Miasto', 'Województwo', 'Piętro', 'Winda', 'Czynsz', 'Tytuł', 'Link']
 

@@ -1,9 +1,9 @@
 import pandas 
 import csv
 
-df = pandas.read_csv("data.csv")
-df2 = pandas.read_csv("data2.csv")
-
+df = pandas.read_csv("single.csv")
+df2 = pandas.read_csv("single_old.csv")
+ 
 
 
 f1 = pandas.DataFrame(set(zip(df["ID"], df["Cena"], df["Link"])), columns=["ID", "Cena", "Link"]).sort_values(axis=0, by='ID',ascending=True)
