@@ -61,13 +61,13 @@ def multi():
         soup = BeautifulSoup(html, 'lxml')
         
         flag = False
-        print(soup.prettify())
+        #print(soup.prettify())
         while True:
             for h in soup.find_all(attrs={'data-sentry-element':'StyledAnchor'}):
-                print(h.prettify())
+                #print(h.prettify())
                 links.append(h.get("href"))
             for h in soup.find_all(attrs={'data-sentry-element':'Link'}):
-                print(h.prettify())
+                #print(h.prettify())
                 links.append(h.get("href"))
             try:
                 next_btn = driver.find_element(By.XPATH, '//li[@aria-label="Go to next Page"]')
@@ -101,19 +101,45 @@ def multi():
             price_per_meter = soup.find(attrs={'aria-label':'Cena za metr kwadratowy'}).get_text(strip=True)
             
             for item in soup.find_all(attrs={"data-sentry-element": "Item"}):
-                label = item.get_text(strip=True).lower()
-                value_tag = item.find_next_sibling("p")
+                print(item.prettify())
                 
-                if "powierzchnia" in label: area = value_tag.get_text(strip=True)
-                elif "liczba pokoi" in label: rooms = value_tag.get_text(strip=True)
+                label = item.get_text(strip=True).lower()
+                value_tag = item.find_next_sibling("div")
+                
+                if "powierzchnia" in label: 
+                    area = value_tag
+                    
+                    if area:
+                        area = area.get_text(strip=True)
+                
+                elif "liczba pokoi" in label: 
+                    rooms = value_tag
+                    
+                    if rooms:
+                        rooms = rooms.get_text(strip=True)
+                
                 elif "czynsz" in label:
-                    rent = value_tag.get_text(strip=True)
+                    rent = value_tag
+                    
+                    if rent:
+                        rent = rent.get_text(strip=True)
 
-                    if rent.startswith('.css'): rent = "brak informacji"
-                    elif rent.endswith('zł'): rent = rent.strip()
+                        if rent.startswith('.css'): rent = "brak informacji"
+                        elif rent.endswith('zł'): rent = rent.strip()
 
-                elif "winda" in label: elevator = value_tag.get_text(strip=True)
-                elif "piętro" in label: floor = value_tag.get_text(strip=True).split('/')[0]    
+                elif "winda" in label: 
+                    elevator = value_tag
+                    
+                    if elevator:
+                        elevator = elevator.get_text(strip=True)
+                
+                elif "piętro" in label: 
+                    floor = value_tag
+                    
+                    if floor:
+                        floor = floor.get_text(strip=True).split('/')[0]    
+            
+            print(area, rooms, rent, elevator, floor)
             
             localisation = soup.find(attrs={'data-sentry-component':'MapLink'}).get_text(strip=True)
             keys = ['Ulica', 'Dzielnica', 'Obszar administracyjny', 'Miasto', 'Województwo'][::-1]
@@ -147,10 +173,11 @@ def multi():
             
             listings.append(details)  
             print(len(listings))   
-        except:
+        except Exception as e:
             if link:
                 err.append(link)   
             else:
+                print(e)
                 err.append("ERROR")
 
     #listings = list(set(listings))

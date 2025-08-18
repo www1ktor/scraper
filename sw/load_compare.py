@@ -1,28 +1,51 @@
-import pandas 
-import csv
+import pandas as pd
 
-df = pandas.read_csv("single.csv")
-df2 = pandas.read_csv("single_old.csv")
- 
+def compare_files(new_file, old_file):
+    df_new = pd.read_csv(new_file)
+    df_old = pd.read_csv(old_file)
+
+    merged = df_new.merge(df_old, on="ID", how="outer", suffixes=("_new", "_old"))
+
+    def classify(row):
+        if pd.isna(row["Cena_new"]):  # brak w nowym -> zakończono
+            return "Zakończono"
+        elif pd.isna(row["Cena_old"]):  # brak w starym -> dodano
+            return "Dodano"
+        else:
+            if row["Cena_new"] != row["Cena_old"]:
+                return "Zmiana ceny"
+            elif row["Link_new"] != row["Link_old"]:
+                return None  # tylko zmiana linku -> ignorujemy
+            else:
+                return None  # brak zmian
+
+    merged["Zmiana"] = merged.apply(classify, axis=1)
+
+    # przygotowanie kolumn Cena i Link w zależności od przypadku
+    def choose_value(row, col):
+        if row["Zmiana"] == "Zakończono":
+            return row[f"{col}_old"]
+        else:
+            return row[f"{col}_new"]
+
+    merged["Cena"] = merged.apply(lambda r: choose_value(r, "Cena"), axis=1)
+    merged["Link"] = merged.apply(lambda r: choose_value(r, "Link"), axis=1)
+
+    # zostaw tylko potrzebne kolumny
+    diff = merged[merged["Zmiana"].notna()][["ID", "Zmiana", "Cena", "Link"]]
+
+    return diff
 
 
-f1 = pandas.DataFrame(set(zip(df["ID"], df["Cena"], df["Link"])), columns=["ID", "Cena", "Link"]).sort_values(axis=0, by='ID',ascending=True)
-f2 = pandas.DataFrame(set(zip(df2["ID"], df2["Cena"], df2["Link"])), columns=["ID", "Cena", "Link"]).sort_values(axis=0, by='ID',ascending=True)
+# porównaj obie pary
+diff_single = compare_files("single.csv", "single_old.csv")
+diff_multi = compare_files("multi.csv", "multi_old.csv")
 
-#print(f1, f2)
+# scal wyniki
+diff_all = pd.concat([diff_single, diff_multi], ignore_index=True)
 
-diff = f1.merge(f2, how='outer', indicator=True).query("_merge != 'both'").rename(columns={'_merge': 'Zmiana'})
-
-diff['Zmiana'] = diff['Zmiana'].map({
-    'left_only': 'Dodano',
-    'right_only': 'Zakończono'
-})
-
-header = ['ID', "Zmiana", "Cena", "Link"]
-
-diff = diff[header]
-
-html_table = diff.to_html(index=False, escape=False, border=1)
+# eksport HTML
+html_table = diff_all.to_html(index=False, escape=False, border=1)
 
 html_body = f"""
 <html>
@@ -50,11 +73,8 @@ html_body = f"""
 </html>
 """
 
-with open("table.html", "w") as f:
-  f.write(html_body)
-  
-diff = diff.to_csv('changes.csv', index=False)
+with open("table.html", "w", encoding="utf-8") as f:
+    f.write(html_body)
 
-
-#print(added.to_csv(index=False))
-#print(expired.to_csv(index=False))
+# eksport CSV
+diff_all.to_csv("changes.csv", index=False)
