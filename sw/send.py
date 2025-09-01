@@ -1,8 +1,11 @@
 import os, smtplib
 from email.message import EmailMessage
 
-addrs = ['sebastian.karykowski@dmm-logistics.com', 'w.karykowski@icloud.com']
-
+addrs = []
+with open('emails.txt') as emails:
+    for mail in emails:
+        addrs.append(mail.strip())
+        
 # Wczytanie zmian
 with open('table.html', encoding='utf-8') as fp:
     body = fp.read()
@@ -19,7 +22,7 @@ PASSWORD  = passwd     # Twój klucz
 for a in addrs:
     msg = EmailMessage()
     msg.set_content(body)
-    msg['Subject'] = 'Zmiany w ogłoszeniach [wczoraj dzisiaj] tera robie testy kminisz bryłe? wszystko się zaciąga i porównuje tak jak prawie powinno. musimy jeszcze tylko zrobić śledzenie ceny i wrzucić to na mikrusa'
+    msg['Subject'] = 'zmiana tydzień do tygodnia'
     msg['To']    = a    # możesz użyć dowolnego valid-from
     msg['From'] = 'karykowskiw@gmail.com'
     msg.add_alternative(body, subtype='html')

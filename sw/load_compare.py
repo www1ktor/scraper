@@ -1,15 +1,18 @@
 import pandas as pd
 
-def compare_files(new_file, old_file):
+def compare_files(new_file, old_file):    
     df_new = pd.read_csv(new_file)
     df_old = pd.read_csv(old_file)
+    
+    df_new["ID"] = df_new["ID"].astype(str).str.strip()
+    df_old["ID"] = df_old["ID"].astype(str).str.strip()
 
     merged = df_new.merge(df_old, on="ID", how="outer", suffixes=("_new", "_old"))
 
     def classify(row):
-        if pd.isna(row["Cena_new"]):  # brak w nowym -> zakończono
+        if pd.isna(row["Cena_new"]) and not pd.isna(row["Cena_old"]):  # brak w nowym -> zakończono
             return "Zakończono"
-        elif pd.isna(row["Cena_old"]):  # brak w starym -> dodano
+        elif pd.isna(row["Cena_old"]) and not pd.isna(row["Cena_new"]):  # brak w starym -> dodano
             return "Dodano"
         else:
             if row["Cena_new"] != row["Cena_old"]:
