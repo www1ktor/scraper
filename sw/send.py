@@ -10,7 +10,7 @@ with open('emails.txt') as emails:
 with open('table.html', encoding='utf-8') as fp:
     body = fp.read()
 
-with open('keys/sentgrid.txt', encoding='utf-8') as pswd:
+with open('/Users/wiktorkarykowski/scrap/keys/sentgrid.txt', encoding='utf-8') as pswd:
     passwd = str(pswd.read())
 
 # Parametry SMTP SendGrid
